@@ -1,21 +1,23 @@
 <?php
 $master = "edit_settings.php";
 include ("blocks/default.php");
+$lang = $language;
 include ("blocks/lock.php");
 include ("blocks/db_connect.php"); /*Подлкючаемся к базе*/
-$user = $_SERVER['PHP_AUTH_USER'];
+$user = '';
+if(isset($_SESSION['username'])) { $user = $_SESSION['username']; }
 $info = '';
 $get_user_language = FALSE;
-$get_user_language = mysql_query("SELECT language FROM userlist WHERE user='$user';");
+$get_user_language = mysqli_query($db,"SELECT language FROM userlist WHERE user='$user';");
 if (!$get_user_language) {
-	if (($err = mysql_errno()) == 1054) {
+	if (($err = mysqli_errno($db)) == 1054) {
 		$info = "<p align=\"center\" class=\"table_error\">Your version of Pure-FTPd WebUI users table is not currently supported by current version, please upgrade your database to use miltilanguage support.</p>";
 	}
 	$language = "english";
 	include("lang/english.php");
 }
 else {
-	$language_row = mysql_fetch_array ($get_user_language);
+	$language_row = mysqli_fetch_array ($get_user_language);
 	$language = $language_row['language'];
 	if ($language == '') {
 		$language = "english";
@@ -27,7 +29,7 @@ echo("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"");
 echo("\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">");
 echo("<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en-US\" xml:lang=\"en-US\">");
 echo("<head>");
-echo("<title>$settings_title</title>");
+echo("<title>$menu_title - $settings_title</title>");
 echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />");
 ?>
 <link rel='shortcut icon' href='img/favicon.ico' />
@@ -49,12 +51,44 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
       <?php include("blocks/menu.php"); ?>
     </tr>
 </table></br><?php echo("$info</br>");
-			if (isset ($_POST['save'])) {
-				if (($_POST['ftp_uid'] != $ftp_uid) || ($_POST['ftp_gid'] != $ftp_gid) || ($_POST['ftp_dir'] != $ftp_dir) || ($_POST['upload_speed'] != $upload_speed) || ($_POST['download_speed'] != $download_speed) || ($_POST['quota_size'] != $quota_size) || ($_POST['quota_files'] != $quota_files) || ($_POST['permitted_ip'] != $permitted_ip) || ($_POST['pureftpd_conf_path'] != $pureftpd_conf_path) || ($_POST['pureftpd_init_script_path'] != $pureftpd_init_script_path) || ($_POST['pureftpwho_path'] != $pureftpwho_path)) {
+			
+			if (isset ($_POST['default'])) {
+			  	$result = mysqli_query ($db,"DELETE FROM settings");
+				if ($result) {
+					$result = mysqli_query ($db,"INSERT INTO settings VALUES ('ftp_uid','apache')");
+					$result = mysqli_query ($db,"INSERT INTO settings VALUES ('ftp_gid','apache')");
+					$result = mysqli_query ($db,"INSERT INTO settings VALUES ('ftp_dir','/tmp')");
+					$result = mysqli_query ($db,"INSERT INTO settings VALUES ('ftp_pass','8')");
+					$result = mysqli_query ($db,"INSERT INTO settings VALUES ('upload_speed','0')");
+					$result = mysqli_query ($db,"INSERT INTO settings VALUES ('download_speed','0')");
+					$result = mysqli_query ($db,"INSERT INTO settings VALUES ('quota_size','0')");
+					$result = mysqli_query ($db,"INSERT INTO settings VALUES ('quota_files','0')");
+					$result = mysqli_query ($db,"INSERT INTO settings VALUES ('permitted_ip','*')");
+					$result = mysqli_query ($db,"INSERT INTO settings VALUES ('pureftpd_conf_path','/etc/pure-ftpd/pure-ftpd.conf')");
+					$result = mysqli_query ($db,"INSERT INTO settings VALUES ('pureftpd_init_script_path','/usr/sbin/pure-ftpd')");
+					$result = mysqli_query ($db,"INSERT INTO settings VALUES ('pureftpwho_path','/usr/sbin/pure-ftpwho')");
+					$result = mysqli_query ($db,"INSERT INTO settings VALUES ('language','english')");
+					$result = mysqli_query ($db,"INSERT INTO settings VALUES ('session','60')");
+					echo "<p><strong>$settings_default_ok</strong></p>";
+				} else {
+					echo "<p><strong>$settings_nodrop</strong></p>";
+				}
+				echo("
+				   <form action=\"edit_settings.php\" method=\"post\">
+					<p>
+						<label>
+						<input type='submit' name='goback' id='goback' value='".$settings_buttongoback."' >
+						</label>
+					</p>
+					</form>
+				");
+			}
+			elseif (isset ($_POST['save'])) {
+				if (($_POST['ftp_uid'] != $ftp_uid) || ($_POST['ftp_gid'] != $ftp_gid) || ($_POST['ftp_dir'] != $ftp_dir) || ($_POST['ftp_pass'] != $ftp_pass) || ($_POST['upload_speed'] != $upload_speed) || ($_POST['download_speed'] != $download_speed) || ($_POST['quota_size'] != $quota_size) || ($_POST['quota_files'] != $quota_files) || ($_POST['permitted_ip'] != $permitted_ip) || ($_POST['pureftpd_conf_path'] != $pureftpd_conf_path) || ($_POST['pureftpd_init_script_path'] != $pureftpd_init_script_path) || ($_POST['pureftpwho_path'] != $pureftpwho_path) || ($_POST['language'] != $lang) || ($_POST['session'] != $session) ){
 					if (isset ($_POST['ftp_uid'])) {
 						if ($_POST['ftp_uid'] != $ftp_uid) {
 							$ftp_uid_ = $_POST['ftp_uid'];
-							$result = mysql_query ("UPDATE settings SET value='$ftp_uid_' WHERE name='ftp_uid'");
+							$result = mysqli_query ($db,"UPDATE settings SET value='$ftp_uid_' WHERE name='ftp_uid'");
 							if ($result == 'true') {
 								echo "<p><strong>$settings_ftp_uid_ok</strong></p>";
 							}
@@ -66,7 +100,7 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 					if (isset ($_POST['ftp_gid'])) {
 						if ($_POST['ftp_gid'] != $ftp_gid) {
 							$ftp_gid_ = $_POST['ftp_gid'];
-							$result = mysql_query ("UPDATE settings SET value='$ftp_gid_' WHERE name='ftp_gid'");
+							$result = mysqli_query ($db,"UPDATE settings SET value='$ftp_gid_' WHERE name='ftp_gid'");
 							if ($result == 'true') {
 								echo "<p><strong>$settings_ftp_gid_ok</strong></p>";
 							}
@@ -78,7 +112,7 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 					if (isset ($_POST['ftp_dir'])) {
 						if ($_POST['ftp_dir'] != $ftp_dir) {
 							$ftp_dir_ = $_POST['ftp_dir'];
-							$result = mysql_query ("UPDATE settings SET value='$ftp_dir_' WHERE name='ftp_dir'");
+							$result = mysqli_query ($db,"UPDATE settings SET value='$ftp_dir_' WHERE name='ftp_dir'");
 							if ($result == 'true') {
 								echo "<p><strong>$settings_ftp_dir_ok</strong></p>";
 							}
@@ -87,22 +121,22 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 							}
 						}
 					}
-					if (isset ($_POST['ftp_dir'])) {
-						if ($_POST['ftp_dir'] != $ftp_dir) {
-							$ftp_dir_ = $_POST['ftp_dir'];
-							$result = mysql_query ("UPDATE settings SET value='$ftp_dir_' WHERE name='ftp_dir'");
+					if (isset ($_POST['ftp_pass'])) {
+						if ($_POST['ftp_pass'] != $ftp_pass) {
+							$ftp_pass_ = $_POST['ftp_pass'];
+							$result = mysqli_query ($db,"UPDATE settings SET value='$ftp_pass_' WHERE name='ftp_pass'");
 							if ($result == 'true') {
-								echo "<p><strong>$settings_ftp_dir_ok</strong></p>";
+								echo "<p><strong>$settings_ftp_pass_ok</strong></p>";
 							}
 							else {
-								echo "<p><strong>$settings_ftp_dir_error</strong></p>";
+								echo "<p><strong>$settings_ftp_pass_error</strong></p>";
 							}
 						}
 					}
 					if (isset($_POST['upload_speed'])) {
 						if ($_POST['upload_speed'] != $upload_speed) {
 							$upload_speed_ = $_POST['upload_speed'];
-							$result = mysql_query ("UPDATE settings SET value='$upload_speed_' WHERE name='upload_speed'");
+							$result = mysqli_query ($db,"UPDATE settings SET value='$upload_speed_' WHERE name='upload_speed'");
 							if ($result == 'true') {
 								echo "<p><strong>$settings_upload_speed_ok</strong></p>";
 							}
@@ -114,7 +148,7 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 					if (isset($_POST['download_speed'])) {
 						if ($_POST['download_speed'] != $download_speed) {
 							$download_speed_ = $_POST['download_speed'];
-							$result = mysql_query ("UPDATE settings SET value='$download_speed_' WHERE name='download_speed'");
+							$result = mysqli_query ($db,"UPDATE settings SET value='$download_speed_' WHERE name='download_speed'");
 							if ($result == 'true') {
 								echo "<p><strong>$settings_download_speed_ok</strong></p>";
 							}
@@ -126,7 +160,7 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 					if (isset($_POST['quota_size'])) {
 						if ($_POST['quota_size'] != $quota_size) {
 							$quota_size_ = $_POST['quota_size'];
-							$result = mysql_query ("UPDATE settings SET value='$quota_size_' WHERE name='quota_size'");
+							$result = mysqli_query ($db,"UPDATE settings SET value='$quota_size_' WHERE name='quota_size'");
 							if ($result == 'true') {
 								echo "<p><strong>$settings_quota_size_ok</strong></p>";
 							}
@@ -138,7 +172,7 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 					if (isset($_POST['quota_files'])) {
 						if ($_POST['quota_files'] != $quota_files) {
 							$quota_files_ = $_POST['quota_files'];
-							$result = mysql_query ("UPDATE settings SET value='$quota_files_' WHERE name='quota_files'");
+							$result = mysqli_query ($db,"UPDATE settings SET value='$quota_files_' WHERE name='quota_files'");
 							if ($result == 'true') {
 								echo "<p><strong>$settings_quota_files_ok</strong></p>";
 							}
@@ -150,7 +184,7 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 					if (isset($_POST['permitted_ip'])) {
 						if ($_POST['permitted_ip'] != $permitted_ip) {
 							$permitted_ip_ = $_POST['permitted_ip'];
-							$result = mysql_query ("UPDATE settings SET value='$permitted_ip_' WHERE name='permitted_ip'");
+							$result = mysqli_query ($db,"UPDATE settings SET value='$permitted_ip_' WHERE name='permitted_ip'");
 							if ($result == 'true') {
 								echo "<p><strong>$settings_permitted_ip_ok</strong></p>";
 							}
@@ -162,7 +196,7 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 					if (isset($_POST['pureftpd_conf_path'])) {
 						if ($_POST['pureftpd_conf_path'] != $pureftpd_conf_path) {
 							$pureftpd_conf_path_ = $_POST['pureftpd_conf_path'];
-							$result = mysql_query ("UPDATE settings SET value='$pureftpd_conf_path_' WHERE name='pureftpd_conf_path'");
+							$result = mysqli_query ($db,"UPDATE settings SET value='$pureftpd_conf_path_' WHERE name='pureftpd_conf_path'");
 							if ($result == 'true') {
 								echo "<p><strong>$settings_pureftpd_conf_path_ok</strong></p>";
 							}
@@ -174,7 +208,7 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 					if (isset($_POST['pureftpd_init_script_path'])) {
 						if ($_POST['pureftpd_init_script_path'] != $pureftpd_init_script_path) {
 							$pureftpd_init_script_path_ = $_POST['pureftpd_init_script_path'];
-							$result = mysql_query ("UPDATE settings SET value='$pureftpd_init_script_path_' WHERE name='pureftpd_init_script_path'");
+							$result = mysqli_query ($db,"UPDATE settings SET value='$pureftpd_init_script_path_' WHERE name='pureftpd_init_script_path'");
 							if ($result == 'true') {
 								echo "<p><strong>$settings_pureftpd_init_script_path_ok</strong></p>";
 							}
@@ -186,7 +220,7 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 					if (isset($_POST['pureftpwho_path'])) {
 						if ($_POST['pureftpwho_path'] != $pureftpwho_path) {
 							$pureftpwho_path_ = $_POST['pureftpwho_path'];
-							$result = mysql_query ("UPDATE settings SET value='$pureftpwho_path_' WHERE name='pureftpwho_path'");
+							$result = mysqli_query ($db,"UPDATE settings SET value='$pureftpwho_path_' WHERE name='pureftpwho_path'");
 							if ($result == 'true') {
 								echo "<p><strong>$settings_pureftpwho_path_ok</strong></p>";
 							}
@@ -195,6 +229,31 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 							}
 						}
 					}
+					if (isset($_POST['language'])) {
+						if ($_POST['language'] != $lang) {
+							$lang_ = $_POST['language'];
+							$result = mysqli_query ($db,"UPDATE settings SET value='$lang_' WHERE name='language'");
+							if ($result == 'true') {
+								echo "<p><strong>$settings_language_ok</strong></p>";
+							}
+							else {
+								echo "<p><strong>$settings_language_error</strong></p>";
+							}
+						}
+					}
+					if (isset($_POST['session'])) {
+						if ($_POST['session'] != $session) {
+							$session_ = $_POST['session'];
+							$result = mysqli_query ($db,"UPDATE settings SET value='$session_' WHERE name='session'");
+							if ($result == 'true') {
+								echo "<p><strong>$settings_session_ok</strong></p>";
+							}
+							else {
+								echo "<p><strong>$settings_session_error</strong></p>";
+							}
+						}
+					}
+
 				}
 				else {
 					echo"<p><strong>$settings_nochanges</strong></p>";
@@ -217,6 +276,11 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 						<p>
 							<label>$settings_ftp_dir</br>
 							<input type=\"text\" name=\"ftp_dir\" id=\"ftp_dir\" value=\"$ftp_dir\" size=\"40\">
+							</label>
+						</p>
+						<p>
+							<label>$settings_ftp_pass</br>
+							<input type=\"text\" name=\"ftp_pass\" id=\"ftp_pass\" value=\"$ftp_pass\" size=\"40\">
 							</label>
 						</p>
 						<p>
@@ -260,8 +324,38 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 							</label>
 						</p>
 						<p>
+						<label>$settings_language</br>
+						<select name=\"language\" style=\"width:315px\">");
+						$directory = "lang/";
+						$languages = glob("" . $directory . "*.php");
+						foreach($languages as $llang) {
+						    $rest = substr($llang, 5);
+						    $lng = substr($rest, 0, -4);
+						    if ($lng == $lang) {
+							echo("<option selected>$lng</option>");
+						    } else {
+						    echo("<option>$lng</option>");
+						    }
+						}
+						echo("</label>
+						</select>
+						</p>
+						<p>
+							<label>$settings_session</br>
+							<input type=\"text\" name=\"session\" id=\"session\" value=\"$session\" size=\"40\">
+							</label>
+						</p>
+						<p>
 							<label>
 							<INPUT type=\"submit\" name=\"save\" value=\"$settings_save_button\" size=\"40\">
+							</label>
+							");
+							for ($x=1;$x<20;$x++) { echo("&nbsp"); }
+							echo("	
+							&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+							
+							<label>
+							<INPUT type=\"submit\" name=\"default\" value=\"$settings_default_button\" size=\"40\" onclick=\"if(!confirm('Confirma Restaurar Padroes Originais ?')){return false;}\">
 							</label>
 						</p>
 					</form>");

@@ -3,19 +3,20 @@ $master = "daemon_control.php";
 include ("blocks/default.php");
 include ("blocks/lock.php");
 include ("blocks/db_connect.php"); /*Подключаемся к базе*/
-$user = $_SERVER['PHP_AUTH_USER'];
+$user = '';
+if(isset($_SESSION['username'])) { $user = $_SESSION['username']; }
 $info = '';
 $get_user_language = FALSE;
-$get_user_language = mysql_query("SELECT language FROM userlist WHERE user='$user';");
+$get_user_language = mysqli_query($db,"SELECT language FROM userlist WHERE user='$user';");
 if (!$get_user_language) {
-	if (($err = mysql_errno()) == 1054) {
+	if (($err = mysqli_errno($db)) == 1054) {
 		$info = "<p align=\"center\" class=\"table_error\">Your version of Pure-FTPd WebUI users table is not currently supported by current version, please upgrade your database to use miltilanguage support.</p>";
 	}
 	$language = "english";
 	include("lang/english.php");
 }
 else {
-	$language_row = mysql_fetch_array ($get_user_language);
+	$language_row = mysqli_fetch_array ($get_user_language);
 	$language = $language_row['language'];
 	if ($language == '') {
 		$language = "english";
@@ -27,7 +28,7 @@ echo("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"");
 echo("\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">");
 echo("<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en-US\" xml:lang=\"en-US\">");
 echo("<head>");
-echo("<title>$dc_title</title>");
+echo("<title>$menu_title - $dc_title</title>");
 echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />");
 ?>
 <link rel='shortcut icon' href='img/favicon.ico' />
@@ -141,22 +142,22 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 							<form name='dc' method='post' action='" . $_SERVER['PHP_SELF'] . "'><table align='center'><tr>
 								<td width='150px'><p>
 									<label>
-									<input type='radio' name='daemon_ctl' id='start' value='start'> Start
+									<input type='radio' name='daemon_ctl' id='start' value='start'>$dc_start
 									</label>
 								</p>
 								<p>
 									<label>
-									<input type='radio' name='daemon_ctl' id='stop' value='stop'> Stop
+									<input type='radio' name='daemon_ctl' id='stop' value='stop'>$dc_stop
 									</label>
 								</p>
 								<p>
 									<label>
-									<input type='radio' name='daemon_ctl' id='restart' value='restart'> Restart
+									<input type='radio' name='daemon_ctl' id='restart' value='restart'>$dc_restart
 									</label>
 								</p>
 								<p>
 									<label>
-									<input type='radio' name='daemon_ctl' id='status' value='status'> Status
+									<input type='radio' name='daemon_ctl' id='status' value='status'>$dc_status
 									</label>
 								</p>
 								</td>

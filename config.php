@@ -1,6 +1,6 @@
 <?php
-$mysql_host = $mysql_host;
-$mysql_webui_user = $mysql_webui_user;
-$mysql_webui_passwd = $mysql_webui_passwd;
-$mysql_database = $mysql_database;
+$mysql_host = "localhost";
+$mysql_webui_user = "root";
+$mysql_webui_passwd = "boshallan";
+$mysql_database = "pureftpd";
 ?>

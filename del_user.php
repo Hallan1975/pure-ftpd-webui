@@ -2,19 +2,20 @@
 $master = "del_user.php";
 include ("blocks/lock.php");
 include ("blocks/db_connect.php"); /*Подлкючаемся к базе*/
-$user = $_SERVER['PHP_AUTH_USER'];
+$user = '';
+if(isset($_SESSION['username'])) { $user = $_SESSION['username']; }
 $info = '';
 $get_user_language = FALSE;
-$get_user_language = mysql_query("SELECT language FROM userlist WHERE user='$user';");
+$get_user_language = mysqli_query($db,"SELECT language FROM userlist WHERE user='$user';");
 if (!$get_user_language) {
-	if (($err = mysql_errno()) == 1054) {
+	if (($err = mysqli_errno($db)) == 1054) {
 		$info = "<p align=\"center\" class=\"table_error\">Your version of Pure-FTPd WebUI users table is not currently supported by current version, please upgrade your database to use miltilanguage support.</p>";
 	}
 	$language = "english";
 	include("lang/english.php");
 }
 else {
-	$language_row = mysql_fetch_array ($get_user_language);
+	$language_row = mysqli_fetch_array ($get_user_language);
 	$language = $language_row['language'];
 	if ($language == '') {
 		$language = "english";
@@ -26,7 +27,7 @@ echo("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"");
 echo("\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">");
 echo("<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en-US\" xml:lang=\"en-US\">");
 echo("<head>");
-echo("<title>$del_title</title>");
+echo("<title>$menu_title - $del_title</title>");
 echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />");
 ?>
 <link rel='shortcut icon' href='img/favicon.ico' />
@@ -35,7 +36,7 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 <link href="media/css/demo_table_jui.css" rel="StyleSheet" type="text/css">
 <link href="media/css/jquery-ui-1.7.2.custom.css" rel="StyleSheet" type="text/css">
 </head>
-<body id="dt_example" class="ex_highlight_row">
+<body id="dt_example" class="ex_highlight_row" >
 <table width="80%" border="0" align="center" cellpadding="0" cellspacing="0" bgcolor="#FFFFFF" class="main_border">
   <tbody>
 <?php include("blocks/header.php"); ?>
@@ -51,15 +52,15 @@ echo("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />"
 				<?php echo("<p class=\"text_title\">$del_selecttitle</p>"); ?>
                  <form action="drop_user.php" method="post">
                  <?php
-                   $result = mysql_query ("SELECT User,id FROM ftpd");
-                   $myrow = mysql_fetch_array ($result);
+                   $result = mysqli_query ($db,"SELECT User,id FROM ftpd");
+                   $myrow = mysqli_fetch_array ($result);
                    do
                     {
                     printf ("<p><input name='id' type='radio' value='%s'><label> %s</label></p>", $myrow["id"], $myrow["User"]);
                     }
-                   while ($myrow = mysql_fetch_array ($result));
+                   while ($myrow = mysqli_fetch_array ($result));
                   ?>
-				<?php echo("<p><input name=\"submit\" type=\"submit\" value=\"$del_button\"></p>"); ?>
+				<?php echo("<p><input name=\"submit\" type=\"submit\" value=\"$del_button\" onclick=\"if(!confirm('Confirma Exclusao do usuario ?')){return false;}\"></p>"); ?>
                   </form></br></br>
                </td>
             </tr>
